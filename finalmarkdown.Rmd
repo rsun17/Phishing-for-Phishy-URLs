@@ -1,0 +1,633 @@
+---
+title: "Fishing for Phishy URLs"
+date: "December 2024"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: hide
+    self_contained: yes
+    mode: selfcontained
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, cache = TRUE)
+```
+
+### Team Members  
+* Evan Wacks
+* Ruihan Sun  
+* Ze Fan  
+
+# Problem Statement
+
+How can you reduce your likelihood of clicking on a phishing link that’s trying to steal your data, money or time? Using a data set of pre-classified links, a set of 46 predictor variables, and three machine learning techniques, this project seeks to create an effective model that can predict whether or not a given link has your best interests at heart. The three machine learning techniques utilized are Artificial Neural Network (ANN), Random Forest, and Gradient Boosting Machine (GBM). Each of these techniques are able to examine unique interactions between variables and identify trends and patterns to differentiate malicious sites from harmless sites.
+
+# Data Description
+
+The PhiUSIIL dataset is the large collection of URLs to determine whether a given website is scam, which is obtained from (Kaggle, n.d.). Overall there are $235,795$ observations within which $134,850$ URLs are legitimate, while $100,945$ are phishing ones.
+
+There are 56 variables in total, which include features like URL characteristics, domain properties, HTML metadata, and page contents. We have three types of variables: string, categorical and quantitative, where categorical variables are often binary and indicate the presence or absence of one specific feature. For example, label represents whether the URL is legitimate or not, and HasTitle demonstrates whether the webpage has a title tag or not. In addition to this, quantitative variables are varied in scale, including binary, count, or some continuous measurement. String variables record characters obtained from the URL and the webpage it points to, including Top-Level Domain (TLD), webpage title, and so on.
+
+We record the meaning of each variable as follows:\
+
+1.  filename: The variable recording the name of the file. 
+
+2.  URL: The variable recording the URL itself.
+
+3.  URLLength: The variable recording the number of characters of each URL.
+
+4.  Domain: The variable recording the domain each URL is pointing to.
+
+5.  DomainLength: The variable recording the number of characters of each domain.
+
+6.  IsDomainIP: A dummy variable recording whether the URL is using an IP adress.
+
+7.  TLD: The variable recording the Top Level Domain of the URL.
+
+8.  URLSimilarityIndex: This is a variable defined in the paper (Prasad & Chandra, 2023), recording the similarity of URL with a legitimate URL.
+
+9.  CharContinuationRate: The variable recording the longest uninterrupted alphabet, number, special character sequences dividing the total URL length.
+
+10.  TLDLegitimateProb: The variable recording the occurence ratio of the URL's TLD among the top 10 million websites.
+
+11. URLCharProb: The variable recording the average occurrence ratio of the URL's each alphabet and number in the 10 million legitimate URLs in the dataset.
+
+12. TLDLengthh: The variable recording the length of the Top Level Domain of the URL.
+
+13. NoOfSubDomain: The variable recording the number of sub-domains of this URL.
+
+14. HasObfuscation: A dummy variable recording whether the URL has obfuscation characters.
+
+15. NoOfObfuscatedChar: The variable recording the number of obfuscated characters in the URL.
+
+16. ObfuscationRatio: The variable recording the ratio of obfuscated characters comparing with the total length of the URL.
+
+17. NoOfLettersInURL: The variable recording number of alphabets in the URL.
+
+18. LetterRatioInURL: The variable recording the ratio of number of alphabets comparing to the total length of the URL.
+
+19. NoOfDigitsInURL: The variable recording number of digits in the URL.
+
+20. DigitRatioInURL: The variable recording the ratio of number of digit comparing to the total length of the URL.
+
+21. NoOfEqualssInURL: The variable recording number of equal signs in the URL.
+
+22. NoOfQMarkInURL:The variable recording number of question marks in the URL.
+
+23. NoOfAmpersandInURL: The variable recording number of ampersands in the URL.
+
+24. NoOfOtherSpecialCharsInURL: The variable recording number of other special characters in the URL.
+
+25. SpecialCharRatioInURL: The variable recording the ratio of number of special characters comparing to the total length of the URL.
+
+26. IsHTTPS: A dummy variable indicating whether the website the URL points to is running on unsecured HTTP or secured HTTPS.
+
+27. LineOfCode: The variable recording the number of line of code the website is using.
+
+28. LargestLineLength: The variable recording the largest line length of the the underlying code of the website.
+
+29. HasTitle: A dummy variable indicating whether the website the URL points to has page title.
+
+30. Title: The variable recording the title of the website. If the website does not have a title, this variable is recorded as "0".
+
+31. DomainTitleMatchScore: This is a variable defined in the paper (Prasad & Chandra, 2023), a higher value indicates the domain of the website is more similar to the title of the webpage.
+
+32. URLTitleMatchScore: This is a variable defined in the paper (Prasad & Chandra, 2023), a higher value indicates the URL is more similar to the title of the webpage.
+
+33. HasFavicon: A dummy variable indicating whether the website has a favorite icon.
+
+34. Robots: A dummy variable indicating whether the website has a anti-robot mechanism.
+
+35. IsResponsive: A dummy variable indicating whether the website is responsive.
+
+36. NoOfURLRedirect: A variable recording the number of redirect functions of the webpage.
+
+37. NoOfSelfRedirect: A variable recording the number of self redirect functions of the webpage.
+
+38. HasDescription: A dummy variable indicating whether the website has page descriptions.
+
+39. NoOfPopup: The variable recoording the number of pop-ups in the website.
+
+40. NoOfiFrame: The variable recoording the number of iFrames in the website.
+
+41. HasExternalFormSubmit: A dummy variable indicating whether the website has a form submitting information to external URL.
+
+42. HasSocialNet: A dummy variable indicating whether the website has its social networking information.
+
+43. HasSubmitButton: A dummy variable indicating whether the website has a submit button to submit information to other URLS.
+
+44. HasHiddenFields: A dummy variable indicating whether the website has hidden fields to capture sensitive information.
+
+45. HasPasswordField: A dummy variable indicating whether the website has a place for users to enter their password.
+
+46. Bank: A dummy variable indicating whether the website has elements related to bank.
+
+47. Pay: A dummy variable indicating whether the website has elements related to payments.
+
+48. Crypto: A dummy variable indicating whether the website has elements related to crypto.
+
+49. HasCopyRightInfo: A dummy variable indicating whether the website has its copyright information.
+
+50. NoOfImage: The variable recording the number of image the website has.
+
+51. NoOfCSS: The variable recording the number of CSS (Cascading Style Sheets) used in the website.
+
+52. NoOfJS: The variable recording the number of lines of JavaScript code embedded in the underlying HTML code of the website.
+
+53. NoOfSelfRef: The variable recording the number of hyperlinks that directed to the website itself in the website.
+
+54. NoOfEmptyRef: The variable recording the number of hyperlinks that directed to some empty or invalid links in the website.
+
+55. NoOfExternalRef: The variable recording the number of hyperlinks that directed to some external links in the website.
+
+56. label: A dummy variable indicating whether the URL is phishing or legitimate. $1$ means a legitimate website, $0$ means a phishing website.
+
+
+# Data Preprocessing
+
+We used three models—Artificial Neural Network (ANN), Random Forest (RF), and Gradient Boosting Machine (GBM)—to analyze the data. Since the data preprocessing required for ANN differs significantly from the other two models, this section only presents the initial preprocessing steps common to all three models. The dataset initially contained $235,795$ observations and $56$ variables when being imported. Among these, $5$ variables were of the character type, while the remaining $51$ were of the double type. All dummy variables were recorded as double-type variables with values of $0$ and $1$.
+
+```{r datainput1}
+# Import the data
+library(readr)
+purl <- read_csv("PhiUSIIL_Phishing_URL_Dataset.csv")
+```
+
+In practice, it was observed that the "label" variable appeared to have some implicit factor levels, which caused errors when converting the variable into one-hot encoding for the ANN model. Therefore, resetting its data type was necessary. Additionally, we removed two types of variables that would not be used in the analysis: character-type variables (*FILENAME, TLD, URL, Domain, Title*), as our models are not compatible with them, and derived variables generated by the data providers using complex algorithms (*DomainTitleMatchScore, URLTitleMatchScore, URLSimilarityIndex, TLDLegitimateProb*). These derived variables, created through black-box processes, do not provide interpretability after the model is built and may obscure trends that should exist in the original data. For these reasons, they were excluded.
+
+```{r datainput2}
+# Change the data type of variable ``label''
+require(tidyverse)
+purl$label <- factor(purl$label)
+purl$label <- as.numeric(as.character(purl$label))
+
+# Delete the first type of variables
+purl <- purl[, !(names(purl) %in% c("FILENAME", "TLD", "URL", "Domain", "Title"))]
+
+# Delete the second type of variables
+purl <- purl[, !(names(purl) %in% c("DomainTitleMatchScore", "URLTitleMatchScore", "URLSimilarityIndex", "TLDLegitimateProb"))]
+
+```
+
+# Machine Learning Approach
+
+## Neural Network
+
+An artificial neural network (ANN) is a computational model inspired by the structure and function of the human brain. It consists of layers of interconnected nodes, or "neurons," where each node processes and transmits information to the next layer. The input layer receives data, hidden layers process it, and the output layer produces the result.
+
+To apply ANN models, some extra data preprocessing procedures need to be done. First, the data was divided as follows: $40\%$ of all observations ($94,318$) were used as the training set, $10\%$ ($28,530$) as the validation set, and the remaining $50\%$ ($112,947$) was evenly split into five test sets.
+
+```{r ANN1}
+require(caret)
+set.seed(1234)
+
+# Partition the data into train and remaining
+index <- createDataPartition(purl$label, p = 0.6, list = FALSE)
+train <- purl[-index,]
+remaining <- purl[index,]  # Data not in the training set
+
+# Partition the remaining data into folds
+set.seed(1234)
+folds <- createFolds(remaining$label, k = 6, list = FALSE)
+
+# Assign to test and validation sets
+test1 <- remaining[folds == 1,]
+test2 <- remaining[folds == 2,]
+test3 <- remaining[folds == 3,]
+test4 <- remaining[folds == 4,]
+test5 <- remaining[folds == 5,]
+validation <- remaining[folds == 6,]
+```
+
+Next, more data preparations specifically for the ANN model were done. First, the dataset is split into predictors (inputs) and the target variable (output). The predictors are all columns except the "label" column, which is the target variable we aim to predict. The predictors are converted into a matrix format for compatibility with the ANN. The target variable is converted into a one-hot encoded format, which transforms the original values (e.g., $0$ and $1$) into binary vectors, enabling the ANN to treat it as a classification problem. Next, the numerical predictors are normalized, meaning they are adjusted to have a mean of $0$ and a standard deviation of $1$. This scaling step ensures that all input features are on a similar scale, improving the efficiency and accuracy of the model during training and validation.
+
+```{r ANN2}
+# Prepare the data
+library(keras)
+# Separate predictors (X) and target (y) in the training set
+x_train <- as.matrix(train[, -which(names(train) == "label")])  # Remove the label column
+y_train <- to_categorical(as.numeric(train$label))  # Convert labels to one-hot encoding
+x_validation <- as.matrix(validation[, -which(names(validation) == "label")])
+y_validation <- to_categorical(as.numeric(validation$label))
+
+# Scale the numerical predictors
+x_train <- scale(x_train)
+x_validation <- scale(x_validation)
+```
+
+Two ANN models are defined with different architectures to examine the effect of network depth on performance. Both models are built sequentially by stacking layers.
+
+The first model, model_two_layer, includes an input layer with $128$ nodes and ReLU activation, followed by a dropout layer with a rate of $30\%$. This is followed by a hidden layer with $64$ nodes and another dropout layer. Finally, the output layer consists of $2$ nodes with a softmax activation function, making it suitable for a two-class classification task. The second model, model_three_layer, adds an extra hidden layer with $32$ nodes to increase its depth. The output layer is identical to the one in the first model.
+
+By adding an additional hidden layer, the second model has greater capacity to learn complex patterns in the data, though it also introduces a higher risk of overfitting. The dropout layers in both models help mitigate this by randomly deactivating a portion of neurons during training, promoting better generalization.
+
+The two ANN models were then compiled to prepare them for training. The Adam optimizer was selected to be the optimization algorithm for its ability to adaptively adjust the learning rate during training, which helps the model converge more efficiently and effectively. We use the categorical cross-entropy function to be the loss function, as it is well-suited for classification tasks involving multiple classes. Additionally, the accuracy metric was included to evaluate the model's performance during training and validation, providing a measure of how well the model predicts the correct class labels. 
+
+The two models were then trained using the prepared data. For the two-layer model, training was conducted over $15$ epochs, while the three-layer model was trained for $10$ epochs . During training, the validation set was used to monitor performance and help detect potential overfitting.
+
+The chosen number of epochs was determined based on observations that extending training beyond these points caused the loss on the validation set to increase significantly. This suggests that these are the optimal epochs to balance learning and generalization, ensuring the models do not overfit to the training data while still achieving good performance on unseen data.
+
+```{r ANN3}
+# Define the two-layer neural network model
+model_two_layer <- keras_model_sequential() %>%
+  layer_dense(units = 128, activation = 'relu', input_shape = ncol(x_train)) %>%
+  layer_dropout(rate = 0.3) %>%
+  layer_dense(units = 64, activation = 'relu') %>%
+  layer_dropout(rate = 0.3) %>%
+  layer_dense(units = 2, activation = 'softmax') 
+
+model_two_layer %>% compile(
+  optimizer = 'adam',
+  loss = 'categorical_crossentropy',
+  metrics = c('accuracy')
+)
+
+set.seed(1234)
+history_two_layer <- model_two_layer %>% fit(
+  x_train,
+  y_train,
+  epochs = 15,            # Number of epochs
+  batch_size = 32,        # Batch size
+  validation_data = list(x_validation, y_validation),
+  verbose = 0             # Not displaying training progress (will be shown later)
+)
+
+
+
+# Define the three-layer neural network model
+model_three_layer <- keras_model_sequential() %>%
+  layer_dense(units = 128, activation = 'relu', input_shape = ncol(x_train)) %>%
+  layer_dropout(rate = 0.3) %>%
+  layer_dense(units = 64, activation = 'relu') %>%
+  layer_dropout(rate = 0.3) %>%
+  layer_dense(units = 32, activation = 'relu') %>%
+  layer_dropout(rate = 0.3) %>%
+  layer_dense(units = 2, activation = 'softmax')
+
+model_three_layer %>% compile(
+  optimizer = 'adam',
+  loss = 'categorical_crossentropy',
+  metrics = c('accuracy')
+)
+
+set.seed(1234)
+history_three_layer <- model_three_layer %>% fit(
+  x_train,
+  y_train,
+  epochs = 10,           
+  batch_size = 32,       
+  validation_data = list(x_validation, y_validation),
+  verbose = 0            
+)
+y_validation <- validation$label
+```
+
+
+
+
+
+## Random Forest
+Random forest is a method of machine learning where a specified number of models, called trees, are randomly created through a specified process. Each model, or tree, starts off by randomly selecting between a set amount of variables. The selected variable is the first predictor variable. After selecting the first variable, the tree then splits based on the value for the variable, then randomly additional variables for each split. For example, the variable “has social media” with values $0$, for no, and $1$, for yes, may be selected as the first variable. If no is selected, the model might predict one outcome, and if yes is selected, then another. Each one of these predictions can be split on again in order to increase the accuracy of the model. This process continues until the specified depth, number of variables in the model, is reached. The combination of predictor variables for each tree is random, making each tree by itself unreliable. However, creating hundreds of trees results in a more consistent prediction. The final prediction that the random forest gives for any given data with a quantitative outcome is made by averaging out the predictions of each tree; for data with a categorical outcome, the trees all ‘vote’ and the most often predicted outcome is the returned prediction. 
+
+Both random forest and Gradient Boosting Machine needs a different way of data preprocessing. First, it is needed to transform all the mnumerical type dummy variables to the factor type.
+
+```{r RF1}
+convert_to_factor <- function(data) {
+  data %>%
+    mutate(across(
+      .cols = starts_with(c("Is", "Has")),  # Select columns starting with "Is" or "Has"
+      .fns = as.factor                       # Convert to factor
+    ))
+}
+
+purl <- convert_to_factor(purl)
+
+purl$Bank <- factor(purl$Bank)
+purl$Pay <- factor(purl$Pay)
+purl$Robots <- factor(purl$Robots)
+purl$Crypto <- factor(purl$Crypto)
+purl$label <- factor(purl$label)
+
+purl <- purl %>% 
+  mutate(across(where(~ is.factor(.) && identical(levels(.), c("0", "1"))), 
+                ~ factor(., levels = c("0", "1"), labels = c("no", "yes"))))
+```
+
+We then split the data in the same way as during the preparation for the ANN models. Next, we extracted a smaller training set, named "trainmini," containing $10\%$ ($9,431$ observations) of the original training set. This smaller subset was used to train the random forest model, as using the full training set would result in a computer memory overflow.
+
+```{r RF2}
+set.seed(1234)
+
+# Partition the data into train and remaining
+index <- createDataPartition(purl$label, p = 0.6, list = FALSE)
+train <- purl[-index,]
+remaining <- purl[index,]  # Data not in the training set
+
+# Partition the remaining data into folds
+set.seed(1234)
+folds <- createFolds(remaining$label, k = 6, list = FALSE)
+
+# Assign to test and validation sets
+test1 <- remaining[folds == 1,]
+test2 <- remaining[folds == 2,]
+test3 <- remaining[folds == 3,]
+test4 <- remaining[folds == 4,]
+test5 <- remaining[folds == 5,]
+validation <- remaining[folds == 6,]
+
+# Create a smaller training set
+mindex <- createDataPartition(train$label, p = .9, list = F)
+trainmini <- train[-mindex,]
+```
+
+The random forest model utilized $10$-fold cross-validation to reduce overfitting and ensure the model was not perfectly predicting the training data. Ten-fold cross-validation is a method of reducing how well the model “memorizes” the data in the hopes that it is more effective when looking at new data. Cross-validation works by splitting the data multiple times, in this case, ten times, then building the model based off of all but one of the data splits, testing it on the left out split, then repeating the process until each segment has been tested individually.
+
+```{r RF3}
+library(doParallel)
+nc <- parallel::detectCores()
+
+cl <- makePSOCKcluster(nc)
+registerDoParallel(cl)
+
+
+set.seed(1234)
+tc <- trainControl(method = 'cv',
+                   summaryFunction = twoClassSummary,
+                   number = 10,
+                   classProbs = TRUE)
+
+set.seed(1234)
+model.rf <- train(label~.,
+                  data = trainmini,
+                  metric = "ROC",
+                  method = 'rf',
+                  trControl = tc,
+                  tuneLength = 10)
+
+stopCluster(cl)
+```
+
+The most effective random forest model used to predict whether or not the URL was phishing tried seven variables at each split and generated $500$ trees. This model was determined by using a tune length of ten. Setting a tune length tells R how many different random forests we want to compare to each other. The way tune length creates many different forests is by randomizing the number of trees and the number of variables to try at each split.
+
+```{r RF4}
+model.rf$finalModel
+```
+
+
+
+## Gradient Boosting
+
+Gradient Boosting Machine (GBM) is a machine learning technique that combines multiple small decision trees for regression and classification. Given our problem here is to determine whether a website is phishing or not, we focus on the classification side. GBM starts with a simple initial prediction by calculating the log of the odds for a website being a scam. Then based on the initial guess, we can calculate the residuals, and then the first decision tree is created to classify the website as phishing or legitimate. To compensate for the errors from the previous tree, a new decision tree is introduced. For instance, if some legitimate websites are misclassified as phishing ones, the introduced new tree will learn from patterns in those misclassified cases and make adjustments accordingly. This process is iterative until no significant improvement in error can be made. Each decision tree contributes to the final prediction, and to quantify their contribution, we use “learning rate” as the proportion of how well the model corrects errors. After multiple rounds of iteration, all the decision tree will work together to make the final prediction.
+For the problem of our interest, we used $10$-fold cross validation combined with hyperparameter tuneLength $10$ as the model setup and trained the model on the small training set *trainmini*, which inclueds $10\%$ of the whole training set.
+
+
+
+```{r GBM1}
+set.seed(1234)
+trainControl <- trainControl(method="cv", 
+                             number=10, 
+                             classProbs = TRUE, 
+                             summaryFunction = twoClassSummary)
+
+cl <- makePSOCKcluster(nc)
+registerDoParallel(cl)
+
+set.seed(1234)
+model.gbm <- train(label ~.,
+                    data=trainmini,
+                    method="gbm",
+                    trControl=trainControl,
+                    metric = "ROC",
+                    verbose=FALSE,
+                    tuneLength=10)
+stopCluster(cl)
+```
+
+From the result above, final parameters used for the GBM were number of trees being $350$, tree depth equals $1$, learning rate equals $0.1$, and number of minimum nodes in observation equals $10$.
+
+Here, tree depth represents the maximum depth of each decision tree; specifically a depth of $1$ means that each tree has only one split. Learning rate measures the contribution of each decision tree to the final prediction, and here each decision tree has a relatively small impact on the final model. Further, number of minimum nodes in observation ensures how finely the data can be split.
+
+
+```{r GBM2}
+model.gbm
+```
+
+# Results
+
+## Neural Network
+
+On the validation set, both models performed quite well, having the same accuracy of $99.88\%$. The deeper model does not show significantly better results than the shallower one, which might be due to the simplicity of the dataset or the problem itself, as a shallower network may already capture the essential patterns. Additionally, the increased complexity of the three-layer model could lead to diminishing returns, as the additional parameters might not provide substantial benefits for this specific task. The loss and accuracy for both the validation and training sets across each epoch are displayed as follows.
+
+```{r ANN6}
+# Plot the Accuracy and loss graph
+plot(history_two_layer$metrics$accuracy, type = "l", col = "blue", lwd = 2,
+     xlab = "Epoch", ylab = "Accuracy", main = "Training vs Validation Accuracy")
+lines(history_two_layer$metrics$val_accuracy, col = "red", lwd = 2)
+legend("bottomright", legend = c("Training Accuracy", "Validation Accuracy"),
+       col = c("blue", "red"), lty = 1, lwd = 2)
+
+plot(history_three_layer$metrics$accuracy, type = "l", col = "blue", lwd = 2,
+     xlab = "Epoch", ylab = "Accuracy", main = "Training vs Validation Accuracy")
+lines(history_three_layer$metrics$val_accuracy, col = "red", lwd = 2)
+legend("bottomright", legend = c("Training Accuracy", "Validation Accuracy"),
+       col = c("blue", "red"), lty = 1, lwd = 2)
+```
+
+The confusion matrix for the final models on the validation set are presented below. It is shown that the models are quite balanced, as no significant inclination to false positives or false negatives are observed.
+
+```{r ANN7}
+# Predictions on the validation set for the two-layer model
+prediction_two <- model_two_layer %>% predict(x_validation)
+
+# Convert predictions to class labels (0 or 1)
+predicted_classes_two <- apply(prediction_two, 1, which.max) - 1  # Subtract 1 to match the original 0 and 1 labels
+
+library(caret)
+
+# Create confusion matrix
+conf_matrix <- confusionMatrix(
+  factor(predicted_classes_two),   # Predicted labels
+  factor(y_validation),             # True labels
+  positive = "1"               # Specify positive class if binary
+)
+
+# Print confusion matrix
+print(conf_matrix)
+
+# Predictions on the validation set for the three-layer model
+predictions_three <- model_three_layer %>% predict(x_validation)
+
+# Convert predictions to class labels (0 or 1)
+predicted_classes <- apply(predictions_three, 1, which.max) - 1  # Subtract 1 to match the original 0 and 1 labels
+
+# Create confusion matrix
+conf_matrix_three <- confusionMatrix(
+  factor(predicted_classes),   # Predicted labels
+  factor(y_validation),             # True labels
+  positive = "1"               # Specify positive class if binary
+)
+
+# Print confusion matrix
+print(conf_matrix_three)
+```
+
+
+
+## Random Forest
+
+Across all trees, variable importance is identified by examining which variables contribute the most to the final prediction, whether or not a link is phishing. The number of external references in the link, number of lines of code in the web-page, number of self-references to the page, and amount of code in the page, and has social media connections are the best predictors of whether a site is phishing.
+
+```{r RF5}
+varImp(model.rf)
+# Calculate variable importance
+var_imp <- varImp(model.rf)
+
+# Convert variable importance into a data frame
+var_imp_df <- as.data.frame(var_imp$importance)
+
+# Add row names (variable names) as a column
+var_imp_df$Variable <- rownames(var_imp_df)
+
+# Sort the variables by importance (descending order)
+var_imp_sorted <- var_imp_df[order(-var_imp_df$Overall), ]
+
+# Select the top 20 variables
+top_20_var_imp <- head(var_imp_sorted, 20)
+
+# Create the plot for the top 20 variables
+library(ggplot2)
+ggplot(top_20_var_imp, aes(x = reorder(Variable, Overall), y = Overall)) +
+  geom_bar(stat = "identity") +
+  coord_flip() + 
+  xlab("Variables") + 
+  ylab("Importance") + 
+  ggtitle("Top 20 Variable Importance") +
+  theme_minimal()
+```
+
+On the validation set, the random forest model also performs prettty well: it has an accuracy of $99.94\%$, slightly better than both ANN models.
+
+```{r RF6}
+# apply model to validation data, at the .5 cutoff
+pred <- predict(model.rf, validation)
+confusionMatrix(pred, validation$label, positive = "yes")
+```
+
+
+
+## Gradient Boosting
+
+Running the model on the validation set, the accuracy rate is $99.96\%$. Comparing across these three models, GBM has the highest accuracy rate. However, it misclassified $5$ phishing URLs as legitimate ones, which will cause potential significant security risks. in practice. To address this issue, we adjust the model's sensitivity to minimize the false negatives. The default decision boundary is set to $0.5$, meaning the URL is classified as phishing if the model predicts a phishing probability of $50\%$ or more. In our case, we reduced the decision boundary to $0.03$ to make our model more sensitive in detecting phishing websites.
+
+
+```{r GBM3}
+# without threshold setting
+validation$pred <- predict(model.gbm, validation)
+confusionMatrix(validation$pred, validation$label, positive="yes")
+```
+
+With the decision boundary $0.03$, the accuracy rate is $99.86\%$. This adjustment successfully reduces the number of false positives to $1$, while the number of false positives increases from $4$ to $32$. Considering the tradeoff between security and user experience, such modification is reasonable, and our priority would be to mitigate the risk from scam websites as much as possible.
+
+
+```{r GBM4}
+# With threshold setting
+validation$prob <- predict(model.gbm, validation,
+                      type = "prob")[[2]]
+validation$pred2 <- ifelse(validation$prob < .03, "no", "yes")
+validation$pred2 <- factor(validation$pred2, 
+                       label = c("no", "yes"))
+
+confusionMatrix(validation$pred2, validation$label, positive="yes")
+```
+
+```{r GBM5}
+# Apply our best model to testing sets
+test1$prob <- predict(model.gbm, test1,
+                      type = "prob")[[2]]
+test1$pred2 <- ifelse(test1$prob < .03, "no", "yes")
+test1$pred2 <- factor(test1$pred2, 
+                       label = c("no", "yes"))
+
+matrix_1 <- confusionMatrix(test1$pred2, test1$label, positive="yes")
+
+# Calculate the false negatives (FN)
+false_negative_1 <- matrix_1$table["no", "yes"]
+
+
+
+test2$prob <- predict(model.gbm, test2,
+                      type = "prob")[[2]]
+test2$pred2 <- ifelse(test2$prob < .03, "no", "yes")
+test2$pred2 <- factor(test2$pred2, 
+                       label = c("no", "yes"))
+
+matrix_2 <- confusionMatrix(test2$pred2, test2$label, positive="yes")
+
+false_negative_2 <- matrix_2$table["no", "yes"]
+
+
+
+test3$prob <- predict(model.gbm, test3,
+                      type = "prob")[[2]]
+test3$pred2 <- ifelse(test3$prob < .03, "no", "yes")
+test3$pred2 <- factor(test3$pred2, 
+                       label = c("no", "yes"))
+
+matrix_3 <- confusionMatrix(test3$pred2, test3$label, positive="yes")
+
+false_negative_3 <- matrix_3$table["no", "yes"]
+
+
+
+
+test4$prob <- predict(model.gbm, test4,
+                      type = "prob")[[2]]
+test4$pred2 <- ifelse(test4$prob < .03, "no", "yes")
+test4$pred2 <- factor(test4$pred2, 
+                       label = c("no", "yes"))
+
+matrix_4 <- confusionMatrix(test4$pred2, test4$label, positive="yes")
+
+false_negative_4 <- matrix_4$table["no", "yes"]
+
+
+
+
+
+test5$prob <- predict(model.gbm, test5,
+                      type = "prob")[[2]]
+test5$pred2 <- ifelse(test5$prob < .03, "no", "yes")
+test5$pred2 <- factor(test5$pred2, 
+                       label = c("no", "yes"))
+
+matrix_5 <- confusionMatrix(test5$pred2, test5$label, positive="yes")
+
+false_negative_5 <- matrix_5$table["no", "yes"]
+
+# Print the result
+cat("The number of false negatives in testing set 1:", false_negative_1, "\n")
+
+cat("The number of false negatives in testing set 2:", false_negative_2, "\n")
+
+cat("The number of false negatives in testing set 3:", false_negative_3, "\n")
+
+cat("The number of false negatives in testing set 4:", false_negative_4, "\n")
+
+cat("The number of false negatives in testing set 5:", false_negative_5, "\n")
+```
+
+
+# Discussion
+
+Among all the $117,898$ observations in the testing set, our final model was able to identify every single phising URL, with average accuracy $99.84\%$. This model, or similar models, could be utilized for Search Engine Optimization (SEO) to reduce the number of phishing sites that make their way to the top of individuals’ searches. Additionally, it could be used as a means of active cybersecurity on the user’s end by providing them with feedback about the page they are about to click on and the probability that it is phishing. The current model depends on 46 variables, many of which are obtained by reading information from the phishing website. While having a database of known websites and their data can be effective in classifying websites, a more effective model would only use information stored in the URL itself. This would require a text-based machine learning approach. Making accurate predictions purely off of the link would be ideal and potentially more robust in the long term. While similar technology is already being applied to protect users from malicious phishing sites, there are other types of websites trying to harm us in other ways. Similar models could be created that identify whether or not a site is a source of disinformation or contains high levels of AI content masquerading as human content.
+
+# References
+
+Prasad, A., & Chandra, S. (2023). PhiUSIIL: A diverse security profile empowered phishing URL detection framework based on similarity index and incremental learning. *Computers & Security,* 103545. <https://doi.org/10.1016/j.cose.2023.103545>
+
+Kaggle. (n.d.). *Phishing URL - Websites Dataset (PhiUSIIL).* Retrieved from https://www.kaggle.com/datasets/kaggleprollc/phishing-url-websites-dataset-phiusiil
+
+
+
+
